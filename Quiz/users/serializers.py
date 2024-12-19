@@ -17,23 +17,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['name', 'email', 'role', 'password']
 
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
-
-    def validate_role(self, value):
-        valid_roles = [choice[0] for choice in User.ROLE_CHOICES]
-        if value not in valid_roles:
-            raise serializers.ValidationError(f"Role must be one of {valid_roles}.")
-        return value
-
     def create(self, validated_data):
         user = User(**validated_data)
-        user.set_password(validated_data['password'])  # Securely hash the password
+        user.set_password(validated_data['password'])
         user.save()
         return user
-
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
