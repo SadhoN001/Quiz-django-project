@@ -12,10 +12,10 @@ urlpatterns = [
     path('categories/<int:pk>/', CategoryDetailView.as_view(), name='category-detail'),
     
     # Teacher endpoints
-    # path('teachers/', TeacherView.as_view(), name='teacher-list'),
-    # path('teachers/dashboard/', TeacherView.as_view(), name='teacher-dashboard'),
-    # path('teachers/students/', TeacherView.as_view(), name='teacher-students'),
-    # path('teachers/results/', TeacherView.as_view(), name='teacher-results'),
+    path('teachers/', TeacherView.as_view(), name='teacher-list'),
+    path('teachers/dashboard/', TeacherView.as_view(), name='teacher-dashboard'),
+    path('teachers/students/', TeacherView.as_view(), name='teacher-students'),
+    path('teachers/results/', TeacherView.as_view(), name='teacher-results'),
     
     # Authentication
     path('auth/login/', LoginView.as_view(), name='login'),
