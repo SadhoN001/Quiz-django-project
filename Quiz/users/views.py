@@ -17,7 +17,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView, GenericAPIView
 
 
 class UserView(ListAPIView):
@@ -87,31 +87,22 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Category.objects.all()
 
 
-class TeacherView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+class TeacherView(GenericAPIView):
+    permission_classes = [IsAuthenticated, IsTeacher]
+    serializer_class = TeacherSerializer
+    queryset = Teacher.objects.all()  # Define queryset for reuse
 
     def get(self, request, *args, **kwargs):
-        teachers = Teacher.objects.all()
-        serializer = TeacherSerializer(teachers, many=True)
+        teachers = self.get_queryset()
+        serializer = self.get_serializer(teachers, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
-        serializer = TeacherSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def get_dashboard(self, request, *args, **kwargs):
-        # Custom dashboard data
-        return Response({'message': 'Teacher Dashboard Stats'})
-
-    def get_students(self, request, *args, **kwargs):
-        return Response({'students': []})
-
-    def get_results(self, request, *args, **kwargs):
-        return Response({'results': []})
-
 
 
 class LoginView(APIView):

@@ -8,7 +8,10 @@ class UserAdmin(admin.ModelAdmin):
     
 class CategoryAdmin(admin.ModelAdmin):
     list_display= ('id', 'name', 'description', 'created_by')
+    
+class TechAdmin(admin.ModelAdmin):
+    list_display= ('user', 'subject')
 
 admin.site.register(User,UserAdmin)
 admin.site.register(Category, CategoryAdmin)
-admin.site.register(Teacher)
+admin.site.register(Teacher, TechAdmin)
