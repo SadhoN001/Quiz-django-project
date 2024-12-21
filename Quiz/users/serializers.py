@@ -3,11 +3,11 @@ from .models import User, Category, Teacher
 from django.contrib.auth.hashers import make_password
 
 class UserSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=True)  # Make id editable and required for the request body
+
     class Meta:
         model = User
         fields = ['id', 'name', 'email', 'role', 'income', 'active_field']
-        read_only_fields = ['id']
-
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -24,9 +24,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return user
 
 class CategorySerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), required=False
+    )  # Allow selecting any user
+
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ['id', 'name', 'description', 'created_by']
+        read_only_fields = ['id']
 
 class TeacherSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,7 +39,7 @@ class TeacherSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.CharField(max_length=255)
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):

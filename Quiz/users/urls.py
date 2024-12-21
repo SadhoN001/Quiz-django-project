@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import UserView, UserProfile, CategoryView, TeacherView, LoginView, Register
+from .views import(UserView, UserProfile, CategoryListView, 
+                   CategoryDetailView, TeacherView, LoginView, Register)
 
 urlpatterns = [
     # User endpoints
@@ -7,8 +8,8 @@ urlpatterns = [
     path('profile/', UserProfile.as_view(), name='user-profile'),
     
     # Category endpoints
-    # path('categories/', CategoryView.as_view(), name='category-list'),
-    # path('categories/<int:pk>/', CategoryView.as_view(), name='category-detail'),
+   path('categories/', CategoryListView.as_view(), name='category-list'),
+    path('categories/<int:pk>/', CategoryDetailView.as_view(), name='category-detail'),
     
     # Teacher endpoints
     # path('teachers/', TeacherView.as_view(), name='teacher-list'),

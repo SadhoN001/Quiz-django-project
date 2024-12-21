@@ -1,8 +1,10 @@
 from django.contrib.auth import authenticate
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import User, Category, Teacher
+from django.utils.functional import SimpleLazyObject
 from .serializers import (UserSerializer, UserCreateSerializer, CategorySerializer, TeacherSerializer,
                           UserRegisterSerializer, LoginSerializer)
 from .permissions import IsTeacher
@@ -10,62 +12,79 @@ from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from drf_spectacular.utils import extend_schema
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
 
-class UserView(ListCreateAPIView):
+
+class UserView(ListAPIView):
     """
-    Handles listing all users and creating new ones.
+    Handles listing all users.
     """
     queryset = User.objects.all()
-    permission_classes = [AllowAny]
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return UserCreateSerializer
-        return UserSerializer
+    # Restrict allowed methods to GET only
+    http_method_names = ['get']
 
+@extend_schema(
+    request=UserSerializer,
+    responses=UserSerializer,
+    description="Retrieve or update a user's profile by providing the ID in the request body."
+)
 
-class UserProfile(RetrieveUpdateAPIView):
+class UserProfile(generics.UpdateAPIView):
     """
-    Handles retrieving and updating the authenticated user's profile.
+    Handles retrieving and updating a user's profile using the ID in the request body.
     """
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        # Return the currently authenticated user
-        return self.request.user
+        # Retrieve the user by ID from the request data
+        user_id = self.request.data.get('id')  # Get ID from request body
+        if not user_id:
+            raise ValidationError({"id": "This field is required in the request body."})
+        return get_object_or_404(User, id=user_id)
 
-class CategoryView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+    
+    
+class CategoryListView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CategorySerializer
 
-    def get(self, request, *args, **kwargs):
-        categories = Category.objects.all()
-        serializer = CategorySerializer(categories, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        return Category.objects.all()
 
-    def post(self, request, *args, **kwargs):
-        serializer = CategorySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(created_by=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        user = self.request.user
 
-    def put(self, request, pk, *args, **kwargs):
-        category = Category.objects.get(pk=pk)
-        serializer = CategorySerializer(category, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        # Check if 'created_by' is provided in the request
+        created_by = serializer.validated_data.get('created_by', None)
 
-    def delete(self, request, pk, *args, **kwargs):
-        category = Category.objects.get(pk=pk)
-        category.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if not created_by:  # If not explicitly provided, use the authenticated user
+            serializer.save(created_by=user)
+        else:
+            # Ensure the provided user is valid
+            try:
+                user_instance = User.objects.get(id=created_by.id)
+                serializer.save(created_by=user_instance)
+            except User.DoesNotExist:
+                raise ValueError("The specified user does not exist.")
+
+
+        
+
+class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = CategorySerializer
+
+    def get_queryset(self):
+        return Category.objects.all()
 
 
 class TeacherView(APIView):
